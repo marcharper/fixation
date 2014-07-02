@@ -43,6 +43,50 @@ def moran_fixation(r, N=2):
 
 ## Fixation computations ##
 
+def fixation_for_transitions(N, up, down):
+    """Compute the fixation probability numerically."""
+    ratios = []
+    for i in range(1, N): # ignore first and last transitions, which are likely zero
+        #ratios.append(i*i2 / (i1 * (N-i)))
+        ratios.append(down[i] / up[i])
+    t = cumprod(ratios)
+    s = cumsum(t)
+    return 1./(1+s[-1])
+
+def transitions_for_imitation(N, fitness_func, g=None, beta=1.):
+    if not g:
+        def g(x):
+            return 1. / (1 + math.exp(-x))
+    ups = []
+    downs = []
+    for i in range(0, N+1):
+        fitness = fitness_func((i, N-i))
+        diff = beta * (fitness[0] - fitness[1])
+        #up = float(i) * (N-i) / N**2 * g(diff)
+        #down = float(i) * (N-i) / N**2 * g(-diff)
+        up = g(diff)
+        down = g(-diff)
+        ups.append(up)
+        downs.append(down)
+    return ups, downs
+
+def fixation_transition_test(N=10, beta=1.):
+    r = 2
+    m = [[r,r],[1,1]]
+    landscape = linear_fitness_landscape(m)
+    ups, downs = transitions_for_imitation(N, landscape, beta=beta)
+    fixation = fixation_for_transitions(N, ups, downs)
+    
+    r = math.exp(beta*2)
+    s = math.exp(beta*1)
+    m = [[r,r],[s,s]]
+    landscape = linear_fitness_landscape(m)
+    incentive = replicator(landscape)
+    fixation_2 = fixation_for_incentive(incentive, N)
+
+    print fixation, fixation_2
+
+
 def fixation_for_incentive(incentive, N):
     """Compute the fixation probability numerically."""
     ratios = []
@@ -207,27 +251,27 @@ def paper_figures():
     #neutral_fixation(Nmin=Nmin, Nmax=Nmax, qs=[0, 0.5, 0.8, 0.9, 1., 2.])
     #pyplot.show()
 
-    # Figure 2 (right)
-    pyplot.figure()
-    qs = [round(x, 3) for x in arange(-1., 3.0, 0.01)]
-    Ns = arange(2, 51, 1)
-    #func = functools.partial(q_fixation, r=3.)
-    data, plot_obj = heatmap_for_function(q_fixation, Ns, qs, cmap_name="jet")
-    print data[-1]
-    pyplot.xlabel("Population Size")
-    pyplot.ylabel("Parameter q")
-    pyplot.show()
-
-    ## Figure 3
-    #N=10
-    #R=5
+    ## Figure 2 (right)
     #pyplot.figure()
-    #parameter_comparison(N=N, R=R, incentive_func=logit, params=('beta', [0.1, 0.5, 1., 2., 10.]))
-    #pyplot.ylabel("Fixation Probability")
-    #pyplot.xlabel("Relative fitness r")
-    ##pyplot.figure()
-    ##parameter_comparison(N=N, R=R, incentive_func=fermi, params=('beta',[0.1, 0.5, 1., 2., 10.]))
+    #qs = [round(x, 3) for x in arange(-1., 3.0, 0.01)]
+    #Ns = arange(2, 51, 1)
+    ##func = functools.partial(q_fixation, r=3.)
+    #data, plot_obj = heatmap_for_function(q_fixation, Ns, qs, cmap_name="jet")
+    #print data[-1]
+    #pyplot.xlabel("Population Size")
+    #pyplot.ylabel("Parameter q")
     #pyplot.show()
+
+    # Figure 3
+    N=10
+    R=5
+    pyplot.figure()
+    parameter_comparison(N=N, R=R, incentive_func=fermi, params=('beta', [0.1, 0.5, 1., 2., 10.]))
+    pyplot.ylabel("Fixation Probability")
+    pyplot.xlabel("Relative fitness r")
+    #pyplot.figure()
+    #parameter_comparison(N=N, R=R, incentive_func=fermi, params=('beta',[0.1, 0.5, 1., 2., 10.]))
+    pyplot.show()
     
     ## Figure 4
     #iss_comparison(20, 20., 1., 7., 10. )
